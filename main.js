@@ -502,8 +502,9 @@ var GraphStyleSettingTab = class extends import_obsidian.PluginSettingTab {
       this.display();
     }));
     containerEl.createEl("h2", { text: "Reset" });
-    new import_obsidian.Setting(containerEl).setName("Reset to defaults").setDesc("Reset all settings to their default values").addButton((btn) => btn.setButtonText("Reset").setWarning().onClick(async () => {
-      this.plugin.settings = { ...DEFAULT_SETTINGS };
+    new import_obsidian.Setting(containerEl).setName("Reset to defaults").setDesc("Reset all settings to their default values (presets are preserved)").addButton((btn) => btn.setButtonText("Reset").setWarning().onClick(async () => {
+      const { presets, activePreset } = this.plugin.settings;
+      this.plugin.settings = { ...DEFAULT_SETTINGS, presets, activePreset };
       await this.plugin.saveSettings();
       this.display();
     }));

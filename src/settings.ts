@@ -676,12 +676,14 @@ export class GraphStyleSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName('Reset to defaults')
-			.setDesc('Reset all settings to their default values')
+			.setDesc('Reset all settings to their default values (presets are preserved)')
 			.addButton(btn => btn
 				.setButtonText('Reset')
 				.setWarning()
 				.onClick(async () => {
-					this.plugin.settings = { ...DEFAULT_SETTINGS };
+					// Preserve presets when resetting
+					const { presets, activePreset } = this.plugin.settings;
+					this.plugin.settings = { ...DEFAULT_SETTINGS, presets, activePreset };
 					await this.plugin.saveSettings();
 					this.display();
 				}));
