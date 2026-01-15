@@ -855,6 +855,7 @@ var GraphStyler = class {
   /**
    * Force apply styles directly to node circles
    * This is needed during timelapse when render() is not called
+   * Note: Only color/alpha are applied; scale is not supported during timelapse
    */
   forceApplyNodeStyles(nodeEntries) {
     nodeEntries.forEach(([nodeId, node]) => {

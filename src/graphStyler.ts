@@ -115,13 +115,14 @@ export class GraphStyler {
 		}
 
 		// During timelapse, Obsidian doesn't call render() on nodes
-		// So we need to apply styles directly every frame
+		// So we need to apply styles directly every frame (color only, not scale)
 		this.forceApplyNodeStyles(nodeEntries);
 	}
 
 	/**
 	 * Force apply styles directly to node circles
 	 * This is needed during timelapse when render() is not called
+	 * Note: Only color/alpha are applied; scale is not supported during timelapse
 	 */
 	private forceApplyNodeStyles(nodeEntries: [string, any][]) {
 		nodeEntries.forEach(([nodeId, node]) => {
