@@ -248,26 +248,29 @@ export class GraphStyler {
 		if (!renderer?.nodes) return;
 
 		const activeFile = this.getActiveFile();
-		let activeNodeId: string;
+		let activeNodeId: string | null = null;
 
 		if (activeFile) {
 			activeNodeId = activeFile.path;
 			this.lastActiveNodeId = activeNodeId;
 		} else if (this.lastActiveNodeId) {
 			activeNodeId = this.lastActiveNodeId;
-		} else {
-			return;
 		}
+		// Note: activeNodeId can be null (e.g., during timelapse with no active file)
 
 		// Build neighbor graph
 		this.neighborFinder.buildFromNodes(renderer.nodes);
 
-		// Calculate hop distances
-		const neighborsByHop = this.neighborFinder.findNeighborsByHop(
-			activeNodeId,
-			this.settings.maxHops
-		);
-		const allConnected = this.neighborFinder.getAllConnectedNodes(activeNodeId);
+		// Calculate hop distances (only if we have an active node)
+		let neighborsByHop: Map<number, Set<string>> = new Map();
+		let allConnected: Set<string> = new Set();
+		if (activeNodeId) {
+			neighborsByHop = this.neighborFinder.findNeighborsByHop(
+				activeNodeId,
+				this.settings.maxHops
+			);
+			allConnected = this.neighborFinder.getAllConnectedNodes(activeNodeId);
+		}
 
 		// Clear and rebuild hop level cache
 		this.nodeHopLevels.clear();
@@ -285,20 +288,20 @@ export class GraphStyler {
 			let size: number | undefined;
 
 			// Calculate hop level for this node
-			let hopLevel = 0;
-			if (nodeId === activeNodeId) {
-				hopLevel = 0; // Active node is hop 0
-			} else {
-				for (let hop = 1; hop <= this.settings.maxHops; hop++) {
-					if (neighborsByHop.get(hop)?.has(nodeId)) {
-						hopLevel = hop;
-						break;
+			let hopLevel = -1; // Default: disconnected/no active node
+			if (activeNodeId) {
+				if (nodeId === activeNodeId) {
+					hopLevel = 0; // Active node is hop 0
+				} else {
+					for (let hop = 1; hop <= this.settings.maxHops; hop++) {
+						if (neighborsByHop.get(hop)?.has(nodeId)) {
+							hopLevel = hop;
+							break;
+						}
 					}
-				}
-				if (hopLevel === 0 && allConnected.has(nodeId)) {
-					hopLevel = this.settings.maxHops + 1; // Beyond maxHops but connected
-				} else if (hopLevel === 0) {
-					hopLevel = -1; // Disconnected
+					if (hopLevel === -1 && allConnected.has(nodeId)) {
+						hopLevel = this.settings.maxHops + 1; // Beyond maxHops but connected
+					}
 				}
 			}
 			this.nodeHopLevels.set(nodeId, hopLevel);
@@ -306,7 +309,7 @@ export class GraphStyler {
 			// Get style from rules (if any)
 			const ruleStyle = this.getStyleFromRules(nodeId);
 
-			if (nodeId === activeNodeId) {
+			if (activeNodeId && nodeId === activeNodeId) {
 				// Active node
 				color = this.settings.selectedNodeColor;
 				alpha = 1.0;
@@ -370,7 +373,7 @@ export class GraphStyler {
 
 	private applyEdgeStyles(
 		renderer: GraphRenderer,
-		activeNodeId: string,
+		activeNodeId: string | null,
 		neighborsByHop: Map<number, Set<string>>
 	): void {
 		if (!renderer.links) return;
@@ -381,8 +384,8 @@ export class GraphStyler {
 
 			const sourceId = link.source?.id;
 			const targetId = link.target?.id;
-			const sourceIsActive = sourceId === activeNodeId;
-			const targetIsActive = targetId === activeNodeId;
+			const sourceIsActive = activeNodeId ? sourceId === activeNodeId : false;
+			const targetIsActive = activeNodeId ? targetId === activeNodeId : false;
 			const sourceInRange = this.isInRange(sourceId, neighborsByHop);
 			const targetInRange = this.isInRange(targetId, neighborsByHop);
 

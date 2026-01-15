@@ -959,21 +959,23 @@ var GraphStyler = class {
     if (!(renderer == null ? void 0 : renderer.nodes))
       return;
     const activeFile = this.getActiveFile();
-    let activeNodeId;
+    let activeNodeId = null;
     if (activeFile) {
       activeNodeId = activeFile.path;
       this.lastActiveNodeId = activeNodeId;
     } else if (this.lastActiveNodeId) {
       activeNodeId = this.lastActiveNodeId;
-    } else {
-      return;
     }
     this.neighborFinder.buildFromNodes(renderer.nodes);
-    const neighborsByHop = this.neighborFinder.findNeighborsByHop(
-      activeNodeId,
-      this.settings.maxHops
-    );
-    const allConnected = this.neighborFinder.getAllConnectedNodes(activeNodeId);
+    let neighborsByHop = /* @__PURE__ */ new Map();
+    let allConnected = /* @__PURE__ */ new Set();
+    if (activeNodeId) {
+      neighborsByHop = this.neighborFinder.findNeighborsByHop(
+        activeNodeId,
+        this.settings.maxHops
+      );
+      allConnected = this.neighborFinder.getAllConnectedNodes(activeNodeId);
+    }
     this.nodeHopLevels.clear();
     const nodeEntries = this.getNodeEntries(renderer.nodes);
     nodeEntries.forEach(([nodeId, node]) => {
@@ -983,25 +985,25 @@ var GraphStyler = class {
       let alpha;
       let shape;
       let size;
-      let hopLevel = 0;
-      if (nodeId === activeNodeId) {
-        hopLevel = 0;
-      } else {
-        for (let hop = 1; hop <= this.settings.maxHops; hop++) {
-          if ((_a = neighborsByHop.get(hop)) == null ? void 0 : _a.has(nodeId)) {
-            hopLevel = hop;
-            break;
+      let hopLevel = -1;
+      if (activeNodeId) {
+        if (nodeId === activeNodeId) {
+          hopLevel = 0;
+        } else {
+          for (let hop = 1; hop <= this.settings.maxHops; hop++) {
+            if ((_a = neighborsByHop.get(hop)) == null ? void 0 : _a.has(nodeId)) {
+              hopLevel = hop;
+              break;
+            }
           }
-        }
-        if (hopLevel === 0 && allConnected.has(nodeId)) {
-          hopLevel = this.settings.maxHops + 1;
-        } else if (hopLevel === 0) {
-          hopLevel = -1;
+          if (hopLevel === -1 && allConnected.has(nodeId)) {
+            hopLevel = this.settings.maxHops + 1;
+          }
         }
       }
       this.nodeHopLevels.set(nodeId, hopLevel);
       const ruleStyle = this.getStyleFromRules(nodeId);
-      if (nodeId === activeNodeId) {
+      if (activeNodeId && nodeId === activeNodeId) {
         color = this.settings.selectedNodeColor;
         alpha = 1;
         size = this.settings.activeNodeSize;
@@ -1051,8 +1053,8 @@ var GraphStyler = class {
       this.setupLinkRenderProxy(link);
       const sourceId = (_a = link.source) == null ? void 0 : _a.id;
       const targetId = (_b = link.target) == null ? void 0 : _b.id;
-      const sourceIsActive = sourceId === activeNodeId;
-      const targetIsActive = targetId === activeNodeId;
+      const sourceIsActive = activeNodeId ? sourceId === activeNodeId : false;
+      const targetIsActive = activeNodeId ? targetId === activeNodeId : false;
       const sourceInRange = this.isInRange(sourceId, neighborsByHop);
       const targetInRange = this.isInRange(targetId, neighborsByHop);
       let tint;
