@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build artifacts (keep main.js for releases)
+# main.js
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+*.log
+npm-debug.log*
+
+# Optional: Local testing
+data.json

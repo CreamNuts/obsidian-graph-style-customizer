@@ -1,0 +1,25 @@
+{
+	"name": "obsidian-graph-style-customizer",
+	"version": "1.0.0",
+	"description": "Customize Graph View node colors based on n-hop neighbors",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+	},
+	"keywords": [
+		"obsidian",
+		"graph",
+		"visualization"
+	],
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^20.0.0",
+		"builtin-modules": "^3.3.0",
+		"esbuild": "^0.20.0",
+		"obsidian": "latest",
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+	}
+}

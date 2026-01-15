@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-graph-style-customizer",
+	"name": "Graph Style Customizer",
+	"version": "1.0.0",
+	"minAppVersion": "1.4.0",
+	"description": "Highlight active node and n-hop neighbors in Graph View with customizable colors, presets, and animations",
+	"author": "Jiuk",
+	"authorUrl": "https://github.com/creamnuts",
+	"isDesktopOnly": true
+}

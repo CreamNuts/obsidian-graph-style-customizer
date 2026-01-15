@@ -1,0 +1,189 @@
+/* Graph Style Customizer Styles */
+
+/* Settings page styling */
+.graph-style-customizer-settings h2 {
+	margin-top: 2em;
+	padding-bottom: 0.5em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.graph-style-customizer-settings h3 {
+	margin-top: 1.5em;
+	color: var(--text-muted);
+}
+
+/* Rules Container */
+.rules-container {
+	margin: 1em 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+/* Rule Item */
+.rule-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+	cursor: default;
+	transition: background 0.15s ease;
+}
+
+.rule-item:last-child {
+	border-bottom: none;
+}
+
+.rule-item:hover {
+	background: var(--background-secondary-alt);
+}
+
+.rule-item.dragging {
+	opacity: 0.5;
+	background: var(--interactive-accent);
+}
+
+.rule-item.drag-over {
+	border-top: 2px solid var(--interactive-accent);
+}
+
+/* Drag Handle */
+.rule-drag-handle {
+	cursor: grab;
+	color: var(--text-muted);
+	font-size: 14px;
+	padding: 0 4px;
+	user-select: none;
+}
+
+.rule-drag-handle:hover {
+	color: var(--text-normal);
+}
+
+.rule-drag-handle:active {
+	cursor: grabbing;
+}
+
+/* Type Badge */
+.rule-type-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 600;
+	color: white;
+}
+
+.rule-type-folder {
+	background: #4A90D9;
+}
+
+.rule-type-tag {
+	background: #50C878;
+}
+
+.rule-type-file {
+	background: #FFB347;
+}
+
+/* Pattern */
+.rule-pattern {
+	flex: 1;
+	font-family: var(--font-monospace);
+	font-size: 13px;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Color Preview */
+.rule-color-preview {
+	width: 16px;
+	height: 16px;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+/* Shape Icon */
+.rule-shape-icon {
+	font-size: 14px;
+	color: var(--text-muted);
+}
+
+/* Size Indicator */
+.rule-size-indicator {
+	font-size: 11px;
+	color: var(--text-muted);
+	background: var(--background-primary);
+	padding: 2px 6px;
+	border-radius: 4px;
+}
+
+/* Enabled Toggle */
+.rule-enabled-toggle {
+	margin: 0 4px;
+}
+
+/* Edit Button */
+.rule-edit-btn {
+	padding: 4px 8px;
+	font-size: 11px;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	cursor: pointer;
+	color: var(--text-muted);
+}
+
+.rule-edit-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+/* Delete Button */
+.rule-delete-btn {
+	padding: 4px 8px;
+	font-size: 14px;
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	color: var(--text-muted);
+	border-radius: 4px;
+}
+
+.rule-delete-btn:hover {
+	background: var(--background-modifier-error);
+	color: white;
+}
+
+/* Number input styling */
+.setting-item input[type="number"] {
+	-moz-appearance: textfield;
+}
+
+.setting-item input[type="number"]::-webkit-outer-spin-button,
+.setting-item input[type="number"]::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+/* Autocomplete suggestions */
+.graph-style-suggestion-item {
+	padding: 6px 12px;
+	font-size: 13px;
+}
+
+.graph-style-suggestion-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* Modal styling */
+.modal .setting-item-control input[type="text"] {
+	min-width: 200px;
+}
