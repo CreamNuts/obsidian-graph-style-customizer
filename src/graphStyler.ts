@@ -27,8 +27,8 @@ export class GraphStyler {
 	private originalRenderMethods: Map<string, (...args: any[]) => any> = new Map();
 	private originalLinkRenderMethods: Map<any, (...args: any[]) => any> = new Map();
 
-	// Ticker for timelapse support
-	private tickerCallback: ((delta: number) => void) | null = null;
+	// Animation frame for timelapse support
+	private rafId: number | null = null;
 	private lastNodeCount: number = 0;
 	private lastLinkCount: number = 0;
 
@@ -53,32 +53,32 @@ export class GraphStyler {
 	}
 
 	/**
-	 * Start PixiJS ticker to detect new nodes/links during timelapse
+	 * Start animation loop to detect changes during timelapse
 	 */
 	private startTicker() {
-		const renderer = this.getRenderer();
-		if (!renderer?.px?.ticker || this.tickerCallback) return;
+		if (this.rafId !== null) return;
 
-		this.tickerCallback = () => {
+		const loop = () => {
 			this.checkForChanges();
+			this.rafId = requestAnimationFrame(loop);
 		};
 
-		renderer.px.ticker.add(this.tickerCallback);
+		this.rafId = requestAnimationFrame(loop);
 	}
 
 	/**
-	 * Stop the ticker
+	 * Stop the animation loop
 	 */
 	private stopTicker() {
-		const renderer = this.getRenderer();
-		if (renderer?.px?.ticker && this.tickerCallback) {
-			renderer.px.ticker.remove(this.tickerCallback);
-			this.tickerCallback = null;
+		if (this.rafId !== null) {
+			cancelAnimationFrame(this.rafId);
+			this.rafId = null;
 		}
 	}
 
 	/**
 	 * Check if nodes or links have been added (e.g., during timelapse)
+	 * and try to setup render proxies for new nodes
 	 */
 	private checkForChanges() {
 		if (!this.settings.enabled) return;
@@ -90,12 +90,47 @@ export class GraphStyler {
 		const currentNodeCount = nodeEntries.length;
 		const currentLinkCount = renderer.links?.length || 0;
 
-		// If node or link count changed, reapply styles
-		if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount) {
+		// Check for new nodes that need proxy setup
+		let hasNewProxies = false;
+		nodeEntries.forEach(([nodeId, node]) => {
+			if (!this.proxiedNodes.has(nodeId) && node && typeof node.render === 'function') {
+				this.setupRenderProxy(nodeId, node);
+				hasNewProxies = true;
+			}
+		});
+
+		// Check for new links that need proxy setup
+		renderer.links?.forEach((link) => {
+			if (!this.proxiedLinks.has(link) && link && typeof link.render === 'function') {
+				this.setupLinkRenderProxy(link);
+				hasNewProxies = true;
+			}
+		});
+
+		// If node/link count changed or new proxies were set up, recalculate styles
+		if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount || hasNewProxies) {
 			this.lastNodeCount = currentNodeCount;
 			this.lastLinkCount = currentLinkCount;
 			this.applyStyles();
 		}
+
+		// During timelapse, Obsidian doesn't call render() on nodes
+		// So we need to apply styles directly every frame
+		this.forceApplyNodeStyles(nodeEntries);
+	}
+
+	/**
+	 * Force apply styles directly to node circles
+	 * This is needed during timelapse when render() is not called
+	 */
+	private forceApplyNodeStyles(nodeEntries: [string, any][]) {
+		nodeEntries.forEach(([nodeId, node]) => {
+			const style = this.nodeStyles.get(nodeId);
+			if (style && node.circle) {
+				node.circle.tint = style.tint;
+				node.circle.alpha = style.alpha;
+			}
+		});
 	}
 
 	private getRenderer(): GraphRenderer | null {
@@ -162,6 +197,7 @@ export class GraphStyler {
 			// Then apply our custom styles
 			if (self.settings.enabled) {
 				const style = self.nodeStyles.get(nodeId);
+
 				if (style && node.circle) {
 					node.circle.tint = style.tint;
 					node.circle.alpha = style.alpha;
@@ -318,8 +354,12 @@ export class GraphStyler {
 				// N-hop neighbor
 				color = ruleStyle?.color || this.settings.hopColors[hopLevel - 1] || this.settings.hopColors[0];
 				alpha = 1.0;
+			} else if (!activeNodeId) {
+				// No active node (e.g., timelapse mode) - show all nodes normally
+				color = ruleStyle?.color || this.settings.hopColors[0];
+				alpha = 1.0;
 			} else if (hopLevel === -1) {
-				// Disconnected
+				// Disconnected from active node
 				color = ruleStyle?.color || '#888888';
 				alpha = this.settings.disconnectedOpacity;
 			} else {

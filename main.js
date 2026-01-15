@@ -777,8 +777,8 @@ var GraphStyler = class {
     this.proxiedLinks = /* @__PURE__ */ new Set();
     this.originalRenderMethods = /* @__PURE__ */ new Map();
     this.originalLinkRenderMethods = /* @__PURE__ */ new Map();
-    // Ticker for timelapse support
-    this.tickerCallback = null;
+    // Animation frame for timelapse support
+    this.rafId = null;
     this.lastNodeCount = 0;
     this.lastLinkCount = 0;
     this.leaf = leaf;
@@ -798,34 +798,32 @@ var GraphStyler = class {
     }
   }
   /**
-   * Start PixiJS ticker to detect new nodes/links during timelapse
+   * Start animation loop to detect changes during timelapse
    */
   startTicker() {
-    var _a;
-    const renderer = this.getRenderer();
-    if (!((_a = renderer == null ? void 0 : renderer.px) == null ? void 0 : _a.ticker) || this.tickerCallback)
+    if (this.rafId !== null)
       return;
-    this.tickerCallback = () => {
+    const loop = () => {
       this.checkForChanges();
+      this.rafId = requestAnimationFrame(loop);
     };
-    renderer.px.ticker.add(this.tickerCallback);
+    this.rafId = requestAnimationFrame(loop);
   }
   /**
-   * Stop the ticker
+   * Stop the animation loop
    */
   stopTicker() {
-    var _a;
-    const renderer = this.getRenderer();
-    if (((_a = renderer == null ? void 0 : renderer.px) == null ? void 0 : _a.ticker) && this.tickerCallback) {
-      renderer.px.ticker.remove(this.tickerCallback);
-      this.tickerCallback = null;
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
     }
   }
   /**
    * Check if nodes or links have been added (e.g., during timelapse)
+   * and try to setup render proxies for new nodes
    */
   checkForChanges() {
-    var _a;
+    var _a, _b;
     if (!this.settings.enabled)
       return;
     const renderer = this.getRenderer();
@@ -834,11 +832,38 @@ var GraphStyler = class {
     const nodeEntries = this.getNodeEntries(renderer.nodes);
     const currentNodeCount = nodeEntries.length;
     const currentLinkCount = ((_a = renderer.links) == null ? void 0 : _a.length) || 0;
-    if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount) {
+    let hasNewProxies = false;
+    nodeEntries.forEach(([nodeId, node]) => {
+      if (!this.proxiedNodes.has(nodeId) && node && typeof node.render === "function") {
+        this.setupRenderProxy(nodeId, node);
+        hasNewProxies = true;
+      }
+    });
+    (_b = renderer.links) == null ? void 0 : _b.forEach((link) => {
+      if (!this.proxiedLinks.has(link) && link && typeof link.render === "function") {
+        this.setupLinkRenderProxy(link);
+        hasNewProxies = true;
+      }
+    });
+    if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount || hasNewProxies) {
       this.lastNodeCount = currentNodeCount;
       this.lastLinkCount = currentLinkCount;
       this.applyStyles();
     }
+    this.forceApplyNodeStyles(nodeEntries);
+  }
+  /**
+   * Force apply styles directly to node circles
+   * This is needed during timelapse when render() is not called
+   */
+  forceApplyNodeStyles(nodeEntries) {
+    nodeEntries.forEach(([nodeId, node]) => {
+      const style = this.nodeStyles.get(nodeId);
+      if (style && node.circle) {
+        node.circle.tint = style.tint;
+        node.circle.alpha = style.alpha;
+      }
+    });
   }
   getRenderer() {
     try {
@@ -1009,6 +1034,9 @@ var GraphStyler = class {
         size = this.settings.activeNodeSize;
       } else if (hopLevel > 0 && hopLevel <= this.settings.maxHops) {
         color = (ruleStyle == null ? void 0 : ruleStyle.color) || this.settings.hopColors[hopLevel - 1] || this.settings.hopColors[0];
+        alpha = 1;
+      } else if (!activeNodeId) {
+        color = (ruleStyle == null ? void 0 : ruleStyle.color) || this.settings.hopColors[0];
         alpha = 1;
       } else if (hopLevel === -1) {
         color = (ruleStyle == null ? void 0 : ruleStyle.color) || "#888888";
