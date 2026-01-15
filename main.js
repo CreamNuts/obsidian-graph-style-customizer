@@ -777,6 +777,10 @@ var GraphStyler = class {
     this.proxiedLinks = /* @__PURE__ */ new Set();
     this.originalRenderMethods = /* @__PURE__ */ new Map();
     this.originalLinkRenderMethods = /* @__PURE__ */ new Map();
+    // Ticker for timelapse support
+    this.tickerCallback = null;
+    this.lastNodeCount = 0;
+    this.lastLinkCount = 0;
     this.leaf = leaf;
     this.settings = settings;
     this.app = app;
@@ -788,8 +792,52 @@ var GraphStyler = class {
     if (renderer == null ? void 0 : renderer.nodes) {
       this.isInitialized = true;
       this.applyStyles();
+      this.startTicker();
     } else {
       setTimeout(() => this.initialize(), 200);
+    }
+  }
+  /**
+   * Start PixiJS ticker to detect new nodes/links during timelapse
+   */
+  startTicker() {
+    var _a;
+    const renderer = this.getRenderer();
+    if (!((_a = renderer == null ? void 0 : renderer.px) == null ? void 0 : _a.ticker) || this.tickerCallback)
+      return;
+    this.tickerCallback = () => {
+      this.checkForChanges();
+    };
+    renderer.px.ticker.add(this.tickerCallback);
+  }
+  /**
+   * Stop the ticker
+   */
+  stopTicker() {
+    var _a;
+    const renderer = this.getRenderer();
+    if (((_a = renderer == null ? void 0 : renderer.px) == null ? void 0 : _a.ticker) && this.tickerCallback) {
+      renderer.px.ticker.remove(this.tickerCallback);
+      this.tickerCallback = null;
+    }
+  }
+  /**
+   * Check if nodes or links have been added (e.g., during timelapse)
+   */
+  checkForChanges() {
+    var _a;
+    if (!this.settings.enabled)
+      return;
+    const renderer = this.getRenderer();
+    if (!(renderer == null ? void 0 : renderer.nodes))
+      return;
+    const nodeEntries = this.getNodeEntries(renderer.nodes);
+    const currentNodeCount = nodeEntries.length;
+    const currentLinkCount = ((_a = renderer.links) == null ? void 0 : _a.length) || 0;
+    if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount) {
+      this.lastNodeCount = currentNodeCount;
+      this.lastLinkCount = currentLinkCount;
+      this.applyStyles();
     }
   }
   getRenderer() {
@@ -1185,6 +1233,7 @@ var GraphStyler = class {
     }
   }
   cleanup() {
+    this.stopTicker();
     const renderer = this.getRenderer();
     if (renderer == null ? void 0 : renderer.nodes) {
       const nodeEntries = this.getNodeEntries(renderer.nodes);
@@ -1209,6 +1258,8 @@ var GraphStyler = class {
     this.originalRenderMethods.clear();
     this.originalLinkRenderMethods.clear();
     this.nodeHopLevels.clear();
+    this.lastNodeCount = 0;
+    this.lastLinkCount = 0;
   }
   updateSettings(settings) {
     this.settings = settings;

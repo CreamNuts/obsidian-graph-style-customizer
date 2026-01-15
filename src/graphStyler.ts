@@ -27,6 +27,11 @@ export class GraphStyler {
 	private originalRenderMethods: Map<string, (...args: any[]) => any> = new Map();
 	private originalLinkRenderMethods: Map<any, (...args: any[]) => any> = new Map();
 
+	// Ticker for timelapse support
+	private tickerCallback: ((delta: number) => void) | null = null;
+	private lastNodeCount: number = 0;
+	private lastLinkCount: number = 0;
+
 	constructor(leaf: WorkspaceLeaf, settings: GraphStyleSettings, app: App) {
 		this.leaf = leaf;
 		this.settings = settings;
@@ -41,8 +46,55 @@ export class GraphStyler {
 		if (renderer?.nodes) {
 			this.isInitialized = true;
 			this.applyStyles();
+			this.startTicker();
 		} else {
 			setTimeout(() => this.initialize(), 200);
+		}
+	}
+
+	/**
+	 * Start PixiJS ticker to detect new nodes/links during timelapse
+	 */
+	private startTicker() {
+		const renderer = this.getRenderer();
+		if (!renderer?.px?.ticker || this.tickerCallback) return;
+
+		this.tickerCallback = () => {
+			this.checkForChanges();
+		};
+
+		renderer.px.ticker.add(this.tickerCallback);
+	}
+
+	/**
+	 * Stop the ticker
+	 */
+	private stopTicker() {
+		const renderer = this.getRenderer();
+		if (renderer?.px?.ticker && this.tickerCallback) {
+			renderer.px.ticker.remove(this.tickerCallback);
+			this.tickerCallback = null;
+		}
+	}
+
+	/**
+	 * Check if nodes or links have been added (e.g., during timelapse)
+	 */
+	private checkForChanges() {
+		if (!this.settings.enabled) return;
+
+		const renderer = this.getRenderer();
+		if (!renderer?.nodes) return;
+
+		const nodeEntries = this.getNodeEntries(renderer.nodes);
+		const currentNodeCount = nodeEntries.length;
+		const currentLinkCount = renderer.links?.length || 0;
+
+		// If node or link count changed, reapply styles
+		if (currentNodeCount !== this.lastNodeCount || currentLinkCount !== this.lastLinkCount) {
+			this.lastNodeCount = currentNodeCount;
+			this.lastLinkCount = currentLinkCount;
+			this.applyStyles();
 		}
 	}
 
@@ -561,6 +613,9 @@ export class GraphStyler {
 	}
 
 	cleanup(): void {
+		// Stop the ticker first
+		this.stopTicker();
+
 		// Restore original render methods for nodes
 		const renderer = this.getRenderer();
 		if (renderer?.nodes) {
@@ -589,6 +644,8 @@ export class GraphStyler {
 		this.originalRenderMethods.clear();
 		this.originalLinkRenderMethods.clear();
 		this.nodeHopLevels.clear();
+		this.lastNodeCount = 0;
+		this.lastLinkCount = 0;
 	}
 
 	updateSettings(settings: GraphStyleSettings): void {
